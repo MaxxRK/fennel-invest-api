@@ -178,9 +178,7 @@ class Fennel:
             self.endpoints.graphql, headers=headers, data=query
         )
         if response.status_code != 200:
-            raise Exception(
-                f"Portfolio Request failed with status code {response.status_code}: {response.text}"
-            )
+            return response.json()
         return response.json()["data"]["account"]["portfolio"]
 
     @check_login
@@ -223,9 +221,7 @@ class Fennel:
             self.endpoints.graphql, headers=headers, data=query
         )
         if response.status_code != 200:
-            raise Exception(
-                f"Stock Holdings Request failed with status code {response.status_code}: {response.text}"
-            )
+            return response.json()
         response = response.json()
         return response["data"]["account"]["portfolio"]["bulbs"]
 
