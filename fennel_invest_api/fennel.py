@@ -245,23 +245,23 @@ class Fennel:
         return None if quote is None else quote["isin"]
 
     @check_login
-    def is_stock_tradable(self, isin, account_id, side="buy"):
-        query = self.endpoints.is_tradable_query(isin, account_id)
-        headers = self.endpoints.build_headers(self.Bearer)
-        response = self.session.post(
-            self.endpoints.graphql, headers=headers, data=query
-        )
-        if response.status_code != 200:
-            raise Exception(
-                f"Tradable Request failed with status code {response.status_code}: {response.text}"
+    def is_stock_tradable(self, isin, account_id, side="buy", retries=3):
+        for attempt in range(retries + 1):
+            query = self.endpoints.is_tradable_query(isin, account_id)
+            headers = self.endpoints.build_headers(self.Bearer)
+            response = self.session.post(
+                self.endpoints.graphql, headers=headers, data=query
             )
-        response = response.json()
-        can_trade = response["data"]["bulbBulb"]["tradeable"]
-        if can_trade is None:
-            return False, "No tradeable data found"
-        if side.lower() == "buy":
-            return can_trade["canBuy"], can_trade["restrictionReason"]
-        return can_trade["canSell"], can_trade["restrictionReason"]
+            if response.status_code == 200:
+                can_trade = response.json()["data"]["bulbBulb"]["tradeable"]
+                if can_trade is not None:
+                    if side.lower() == "buy":
+                        return can_trade["canBuy"], can_trade["restrictionReason"]
+                    return can_trade["canSell"], can_trade["restrictionReason"]
+                # If can_trade is None, retry
+            if attempt == retries:
+                break
+        return False, "No tradeable data found or request failed"
 
     @check_login
     def get_stock_info_from_holdings(self, account_id, ticker) -> dict | None:
